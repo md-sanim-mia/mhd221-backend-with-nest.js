@@ -4,10 +4,11 @@ import { UpdateAuthDto } from './dto/update-auth.dto';
 import { PrismaService } from 'src/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
 import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 @Injectable()
 export class AuthService {
 
-  constructor(private prisma:PrismaService, private readonly email:UtilsService){}
+  constructor(private prisma:PrismaService, private readonly email:UtilsService,private jwtService:JwtService){}
   async create(generateOtpEmail:GenerateOtpDto) {
 
    const isUserExistByEmail= await this.prisma.user.findFirst({where:{email:generateOtpEmail.email}})
@@ -221,11 +222,37 @@ const normalizedEmail = createAuthDto.email.toLowerCase().trim();
 
  const user= await this.prisma.user.create({ data: userData });
 
+ const jwtPayload={
+userId:user.id,
+fullName:user.fullName,
+email :user.email,
+role:user.role,
+isVerified:user.isVerified
+ }
+
+
+ const accessToken = await this.jwtService.sign(jwtPayload,{
+  secret:process.env.JWT_ACCESS_SECRET,
+  expiresIn:"10d"
+ })
+
+
+ const refeshToken=await this.jwtService.sign(jwtPayload,{
+  secret: process.env.JWT_REFRESH_SECRET,
+  expiresIn:"1y",
+  
+ })
+
+
+
+
+ 
+
  return user
   
   }
 
-  
+
   findAll() {
     return `This action returns all auth`;
   }
