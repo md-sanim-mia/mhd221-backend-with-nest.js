@@ -1,0 +1,244 @@
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { CreateAuthDto, GenerateOtpDto } from './dto/create-auth.dto';
+import { UpdateAuthDto } from './dto/update-auth.dto';
+import { PrismaService } from 'src/prisma.service';
+import { UtilsService } from 'src/utils/utils.service';
+import * as bcrypt from 'bcrypt';
+@Injectable()
+export class AuthService {
+
+  constructor(private prisma:PrismaService, private readonly email:UtilsService){}
+  async create(generateOtpEmail:GenerateOtpDto) {
+
+   const isUserExistByEmail= await this.prisma.user.findFirst({where:{email:generateOtpEmail.email}})
+
+
+   if (isUserExistByEmail){
+
+    throw new ConflictException('User already exists') 
+   }
+
+
+   const generateOtp=():string=>{
+
+    return Math.floor(100000+Math.random()*900000).toString()
+   }
+
+   await this.prisma.otpModel.deleteMany({where:{
+    email:generateOtpEmail.email,
+    isVerified:false
+   }})
+
+
+   const otp=generateOtp()
+   const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); 
+
+   await this.prisma.otpModel.create({
+    data:{
+      email:generateOtpEmail.email,
+      code:otp,
+      expiresAt:otpExpiresAt,
+      isVerified:false
+    }
+   })
+
+     const emailContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Email Verification</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f4;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+              
+              <!-- Header -->
+              <tr>
+                <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
+                  <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 300;">
+                    Email Verification
+                  </h1>
+                  <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
+                    Secure your account with OTP verification
+                  </p>
+                </td>
+              </tr>
+              
+              <!-- Content -->
+              <tr>
+                <td style="padding: 40px 30px;">
+                  <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                    Hello there,
+                  </p>
+                  
+                  <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+                    We received a request to verify your email address. Please use the following verification code to proceed:
+                  </p>
+
+                  <!-- OTP Box -->
+                  <div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border: 2px solid #667eea; border-radius: 12px; padding: 30px; text-align: center; margin: 30px 0;">
+                    <p style="color: #666666; font-size: 14px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px;">
+                      Verification Code
+                    </p>
+                    <h1 style="color: #667eea; font-size: 36px; font-weight: bold; letter-spacing: 8px; margin: 0; font-family: 'Courier New', monospace;">
+                      ${otp}
+                    </h1>
+                  </div>
+
+                  <!-- Important Info -->
+                  <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 20px; margin: 30px 0;">
+                    <p style="color: #856404; font-size: 14px; margin: 0; line-height: 1.5;">
+                      <strong>⚠️ Important:</strong> This verification code will expire in <strong>10 minutes</strong>. 
+                      Please complete your verification before it expires.
+                    </p>
+                  </div>
+
+                  <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 20px 0;">
+                    If you didn't request this verification code, please ignore this email and ensure your account is secure.
+                  </p>
+
+                  <!-- Security Tips -->
+                  <div style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 30px 0;">
+                    <h3 style="color: #333333; font-size: 16px; margin: 0 0 10px 0;">
+                      🔒 Security Tips:
+                    </h3>
+                    <ul style="color: #666666; font-size: 14px; margin: 0; padding-left: 20px;">
+                      <li style="margin: 5px 0;">Never share your verification code with anyone</li>
+                      <li style="margin: 5px 0;">We will never ask for your code via phone or email</li>
+                      <li style="margin: 5px 0;">Always verify the sender's email address</li>
+                    </ul>
+                  </div>
+                </td>
+              </tr>
+              
+              <!-- Footer -->
+              <tr>
+                <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
+                  <p style="color: #6c757d; font-size: 14px; margin: 0 0 10px 0;">
+                    Need help? Contact our support team
+                  </p>
+                  <p style="color: #6c757d; font-size: 14px; margin: 0;">
+                    Best regards,<br>
+                    <strong style="color: #667eea;">Your App Team</strong>
+                  </p>
+                  
+                  <div style="margin-top: 20px;">
+                    <p style="color: #adb5bd; font-size: 12px; margin: 0;">
+                      This email was sent to ${generateOtpEmail.email}
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+
+ const result= await this.email.SendAuthEmail(generateOtpEmail.email, "🔐 Email Verification Code - Action Required", emailContent);
+
+    return result
+
+  }
+
+
+  async verifyUser (otpCode:string,createAuthDto :CreateAuthDto){
+
+    const isUserExistByEmail=await this.prisma.user.findFirst({where:{email:createAuthDto.email}})
+    
+    if(isUserExistByEmail){
+      throw new ConflictException(`User with this email: ${createAuthDto.email} already exists!`)
+    }
+
+
+  if (!createAuthDto.email || !otpCode) {
+    throw new BadRequestException( "Email and OTP are required!");
+  }
+
+  if (otpCode.length !== 6) {
+    throw new BadRequestException("OTP must be 6 digits!");
+  }
+  if (!createAuthDto) {
+    throw new BadRequestException("payload is required !");
+  }
+
+const normalizedEmail = createAuthDto.email.toLowerCase().trim();
+
+
+  const otpRecord = await this.prisma.otpModel.findFirst({
+    where: {
+      email: createAuthDto.email,
+      isVerified: false
+    },
+    orderBy: {
+      generatedAt: 'desc'
+    }
+  });
+  console.log(otpRecord)
+
+  if (!otpRecord) {
+    throw new NotFoundException( "OTP not found or already used. Please request a new OTP.");
+  }
+
+
+  if (new Date() > otpRecord?.expiresAt) {
+
+    await this.prisma.otpModel.delete({ 
+      where: { id: otpRecord.id } 
+    });
+    
+    throw new UnauthorizedException("OTP has expired. Please request a new verification code.");
+  }
+
+
+  if (otpRecord.code !== otpCode.trim()) {
+    throw new UnauthorizedException("Invalid OTP. Please check the code and try again.");
+  }
+
+
+ const result= await this.prisma.otpModel.update({
+    where: { id: otpRecord.id },
+    data: { 
+      isVerified: true 
+    }
+  });
+
+  const hashedPassword = await bcrypt.hash(createAuthDto.password,12)
+
+  const userData = {
+    ...createAuthDto,
+    password: hashedPassword,
+    isVerified: true,
+  };
+
+
+ const user= await this.prisma.user.create({ data: userData });
+
+ return user
+  
+  }
+
+  
+  findAll() {
+    return `This action returns all auth`;
+  }
+
+  findOne(id: number) {
+    return `This action returns a #${id} auth`;
+  }
+
+  update(id: number, updateAuthDto: UpdateAuthDto) {
+    return `This action updates a #${id} auth`;
+  }
+
+  remove(id: number) {
+    return `This action removes a #${id} auth`;
+  }
+}
