@@ -1,10 +1,11 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, Post, UnauthorizedException } from '@nestjs/common';
 import { CreateAuthDto, GenerateOtpDto } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { PrismaService } from 'src/prisma.service';
 import { UtilsService } from 'src/utils/utils.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { LoginPayloadDto } from './dto/login-auth.dto';
 @Injectable()
 export class AuthService {
 
@@ -152,6 +153,8 @@ export class AuthService {
 
   async verifyUser (otpCode:string,createAuthDto :CreateAuthDto){
 
+    console.log(otpCode,createAuthDto)
+
     const isUserExistByEmail=await this.prisma.user.findFirst({where:{email:createAuthDto.email}})
     
     if(isUserExistByEmail){
@@ -222,12 +225,48 @@ const normalizedEmail = createAuthDto.email.toLowerCase().trim();
 
  const user= await this.prisma.user.create({ data: userData });
 
+ 
+ return user
+  
+  }
+
+
+  @Post("login") 
+
+  async login (payload :LoginPayloadDto){
+
+    if(!payload.email || !payload.password){
+
+      throw new BadRequestException("email and password is requried !")
+
+    }
+
+
+    const isUser=await this.prisma.user.findFirst({where:{email:payload.email}})
+
+
+     if(!isUser){
+
+      throw new  BadRequestException("Invlide email and password please try agin!")
+     }
+
+
+
+     const compare=await bcrypt.compare(payload.password,isUser.password)
+
+     if(!compare){
+
+
+      throw new BadRequestException("Invlide email and password please try agin!")
+     }
+
+
  const jwtPayload={
-userId:user.id,
-fullName:user.fullName,
-email :user.email,
-role:user.role,
-isVerified:user.isVerified
+userId:isUser.id,
+fullName:isUser.fullName,
+email :isUser.email,
+role:isUser.role,
+isVerified:isUser.isVerified
  }
 
 
@@ -236,7 +275,7 @@ isVerified:user.isVerified
   expiresIn:"10d"
  })
 
-
+console.log(accessToken)
  const refeshToken=await this.jwtService.sign(jwtPayload,{
   secret: process.env.JWT_REFRESH_SECRET,
   expiresIn:"1y",
@@ -244,12 +283,10 @@ isVerified:user.isVerified
  })
 
 
-
-
- 
-
- return user
-  
+ return{
+  accessToken,
+  refeshToken
+ }
   }
 
 
