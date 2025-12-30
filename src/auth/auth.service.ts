@@ -152,6 +152,7 @@ export class AuthService {
 
   }
 
+ //------verify section --------------//
 
   async verifyUser (otpCode:string,createAuthDto :CreateAuthDto){
 
@@ -232,8 +233,8 @@ const normalizedEmail = createAuthDto.email.toLowerCase().trim();
   
   }
 
+  //------login  section --------------//
 
-  @Post("login") 
 
   async login (payload :LoginPayloadDto){
 
@@ -291,6 +292,9 @@ console.log(accessToken)
  }
   }
 
+  //------chenge  password section --------------//
+
+
  async chengePassword(payload:ChengePasswordDto){
 
    const user = await this.prisma.user.findFirst({
@@ -331,19 +335,200 @@ return  await this.prisma.user.update({
 
  }
    
-  findAll() {
-    return `This action returns all auth`;
+
+//------forget password section --------------//
+
+
+ async forgetPassword (email:string){
+
+const user = await this.prisma.user.findUnique({ where: { email } });
+
+  if (!user) {
+    throw new NotFoundException("User not found!");
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
+  if (!user.isVerified) {
+    throw new UnauthorizedException("User account is not verified!");
+  }
+ 
+  const generateOTP = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  };
+
+  const otp = generateOTP();
+  const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); 
+
+  await this.prisma.user.update({
+    where: { email },
+    data: {
+      isResetPassword: true,
+      canResetPassword: false,
+      resetPasswordOTP: otp,
+      resetPasswordOTPExpiresAt: otpExpiresAt,
+    },
+  });
+
+ 
+const emailContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Password Reset</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 300;">
+                Password Reset Request
+              </h1>
+              <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
+                Reset your password securely with OTP
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                Hello <strong>${user.fullName}</strong>,
+              </p>
+              
+              <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+                We received a request to reset your password. Please use the following One-Time Password (OTP) to proceed with resetting your password:
+              </p>
+
+              <!-- OTP Box -->
+              <div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border: 2px solid #667eea; border-radius: 12px; padding: 30px; text-align: center; margin: 30px 0;">
+                <p style="color: #666666; font-size: 14px; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 1px;">
+                  One-Time Password
+                </p>
+                <h1 style="color: #667eea; font-size: 36px; font-weight: bold; letter-spacing: 8px; margin: 0; font-family: 'Courier New', monospace;">
+                  ${otp}
+                </h1>
+              </div>
+
+              <!-- Important Info -->
+              <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 20px; margin: 30px 0;">
+                <p style="color: #856404; font-size: 14px; margin: 0; line-height: 1.5;">
+                  <strong>⚠️ Important:</strong> This OTP will expire in <strong>10 minutes</strong>. 
+                  Please complete your password reset before it expires.
+                </p>
+              </div>
+
+              <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 20px 0;">
+                If you didn't request this password reset, please ignore this email and ensure your account is secure. Your password will remain unchanged.
+              </p>
+
+              <!-- Security Tips -->
+              <div style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 30px 0;">
+                <h3 style="color: #333333; font-size: 16px; margin: 0 0 10px 0;">
+                  🔒 Security Tips:
+                </h3>
+                <ul style="color: #666666; font-size: 14px; margin: 0; padding-left: 20px;">
+                  <li style="margin: 5px 0;">Never share your OTP with anyone</li>
+                  <li style="margin: 5px 0;">We will never ask for your OTP via phone or email</li>
+                  <li style="margin: 5px 0;">Always verify the sender's email address</li>
+                  <li style="margin: 5px 0;">Use a strong and unique password</li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="color: #6c757d; font-size: 14px; margin: 0 0 10px 0;">
+                Need help? Contact our support team
+              </p>
+              <p style="color: #6c757d; font-size: 14px; margin: 0;">
+                Best regards,<br>
+                <strong style="color: #667eea;">Your App Team</strong>
+              </p>
+              
+              <div style="margin-top: 20px;">
+                <p style="color: #adb5bd; font-size: 12px; margin: 0;">
+                  This email was sent to ${user.email}
+                </p>
+                <p style="color: #adb5bd; font-size: 12px; margin: 10px 0 0 0;">
+                  © ${new Date().getFullYear()} Your Company. All rights reserved.
+                </p>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+
+
+  await this.email.SendAuthEmail(user.email, "Password Reset OTP", emailContent);
+
+  return {
+    message:
+      "We have sent a 6-digit OTP to your email address. Please check your inbox and use the OTP to reset your password.",
+  };
+
+ }
+
+
+
+
+//------verify  forget password request otp section --------------//
+
+
+ async verifyResetPasswordOTP(payload:{email:string,otp:string}){
+
+   const user = await this.prisma.user.findUnique({
+    where: {  email:payload.email },
+  });
+
+  if (!user) {
+    throw new NotFoundException( "User not found!");
   }
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
+  if (!user.isResetPassword) {
+    throw new BadRequestException("No password reset request found!");
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+  if (!user.resetPasswordOTP || user.resetPasswordOTP !== payload.otp) {
+    throw new BadRequestException("Invalid OTP!");
   }
+
+
+  if (
+    !user.resetPasswordOTPExpiresAt ||
+    new Date() > user.resetPasswordOTPExpiresAt
+  ) {
+    throw new BadRequestException("OTP has expired!");
+  }
+
+
+
+  await this.prisma.user.update({
+    where: { email:payload.email },
+    data: {
+      canResetPassword: true,
+      resetPasswordOTP: null,
+      resetPasswordOTPExpiresAt: null,
+    },
+  });
+
+  return {
+    message: "OTP verified successfully. You can now reset your password.",
+  };
+ }
+
+
 }

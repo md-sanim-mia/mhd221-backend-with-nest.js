@@ -66,13 +66,6 @@ async login (@Body() payload : LoginPayloadDto){
   }
 }
 
-
-  @Get()
-  findAll() {
-    return this.authService.findAll();
-  }
-
-
 @UseGuards(JwtAuthGuard)
 @Put("change-password")
 
@@ -94,21 +87,38 @@ async login (@Body() payload : LoginPayloadDto){
   }
 
 
+//forget password ------------
 
+@Post("forgot-password")
 
+@HttpCode(HttpStatus.OK)
+  async forgetPassword (@Body() payload: {email:string}){
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
+    const result=await this.authService.forgetPassword(payload.email)
+
+    return {
+      "succcess":true,
+      "message":result.message
+    }
+       
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
+
+
+
+  @Post("verify-reset-password-otp")
+  
+@HttpCode(HttpStatus.OK)
+  async erifyResetPasswordOTP(@Body() payload:{email:string,otp:string}){
+
+    const result=await this.authService.verifyResetPasswordOTP(payload)
+
+    return {
+      "succcess":true,
+      "message":result.message
+    }
+       
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
-  }
+
 }
