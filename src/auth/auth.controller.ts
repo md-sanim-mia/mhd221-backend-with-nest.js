@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus, UnauthorizedException, Req, UseGuards, Put } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto, GenerateOtpDto } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { LoginPayloadDto } from './dto/login-auth.dto';
+import { ChengePasswordDto } from './dto/chenge-password-auth.dto';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -69,6 +71,31 @@ async login (@Body() payload : LoginPayloadDto){
   findAll() {
     return this.authService.findAll();
   }
+
+
+@UseGuards(JwtAuthGuard)
+@Put("change-password")
+
+@HttpCode(HttpStatus.OK)
+  async chengePassword(@Req() req:Request &{user:any}, @Body() payload:ChengePasswordDto){
+
+    const payloads={
+      ...payload,
+      email:req?.user?.email
+    }
+
+    const result=await this.authService.chengePassword(payloads)
+
+    return {
+      "success":true,
+      "message":"password chenge success fully !",
+    }
+
+  }
+
+
+
+
 
   @Get(':id')
   findOne(@Param('id') id: string) {

@@ -6,6 +6,8 @@ import { UtilsService } from 'src/utils/utils.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { LoginPayloadDto } from './dto/login-auth.dto';
+import { ChengePasswordDto } from './dto/chenge-password-auth.dto';
+import { retry } from 'rxjs';
 @Injectable()
 export class AuthService {
 
@@ -289,7 +291,46 @@ console.log(accessToken)
  }
   }
 
+ async chengePassword(payload:ChengePasswordDto){
 
+   const user = await this.prisma.user.findFirst({
+    where: { email: payload.email }
+  });
+  
+  if (!user) {
+    throw new NotFoundException('User not found!');
+  }
+
+const isPasswordValid = await bcrypt.compare(payload.currentPassword, user.password);
+  
+  if (!isPasswordValid) {
+    throw new UnauthorizedException('Current password is incorrect!');
+  }
+
+
+  if (payload.currentPassword === payload.newPassword) {
+    throw new BadRequestException('New password must be different from current password!');
+  }
+
+
+  if (payload.newPassword !== payload.confirmPassword) {
+    throw new BadRequestException('New password and confirm password do not match!');
+  }
+
+  const hashedPassword = await bcrypt.hash(payload.newPassword, 10);
+
+return  await this.prisma.user.update({
+    where: { id: user.id },
+    data: { 
+      password: hashedPassword,
+      updatedAt: new Date()
+    }
+  });
+
+
+
+ }
+   
   findAll() {
     return `This action returns all auth`;
   }
