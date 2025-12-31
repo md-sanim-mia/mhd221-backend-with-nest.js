@@ -8,10 +8,13 @@ import { JwtService } from '@nestjs/jwt';
 import { LoginPayloadDto } from './dto/login-auth.dto';
 import { ChengePasswordDto } from './dto/chenge-password-auth.dto';
 import { retry } from 'rxjs';
+import { ForgetPasswordDto } from './dto/forget-password-auth.dto';
+import { get } from 'http';
+import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class AuthService {
 
-  constructor(private prisma:PrismaService, private readonly email:UtilsService,private jwtService:JwtService){}
+  constructor(private prisma:PrismaService, private readonly email:UtilsService,private jwtService:JwtService,private configService: ConfigService){}
   async create(generateOtpEmail:GenerateOtpDto) {
 
    const isUserExistByEmail= await this.prisma.user.findFirst({where:{email:generateOtpEmail.email}})
@@ -484,7 +487,6 @@ const emailContent = `
 
 
 
-
 //------verify  forget password request otp section --------------//
 
 
@@ -529,6 +531,117 @@ const emailContent = `
     message: "OTP verified successfully. You can now reset your password.",
   };
  }
+
+
+//reset password --------------------------------
+
+ async resetPassword(payload:ForgetPasswordDto){
+
+
+   if (payload.newPassword !== payload.confirmPassword) {
+    throw new BadRequestException("Passwords do not match!");
+  }
+
+  const user = await this.prisma.user.findUnique({
+    where: { email: payload.email },
+  });
+
+  if (!user) {
+    throw new NotFoundException("User not found!");
+  }
+
+  if (!user.canResetPassword) {
+    throw new BadRequestException(
+ 
+      "User is not eligible for password reset!"
+    );
+  }
+  const hashedPassword = await bcrypt.hash(payload.newPassword,12);
+
+  await this.prisma.user.update({
+    where: { email: payload.email },
+    data: {
+      password: hashedPassword,
+      isResetPassword: false,
+      canResetPassword: false,
+    },
+  });
+
+  return {
+    message: "Password reset successfully!",
+  };
+ }
+
+
+
+ // get me ---------------------
+
+
+ async getMe(email:string){
+
+
+const user = await this.prisma.user.findFirst({
+    where: { email },
+     select: {
+      id: true,
+      fullName:true,
+      email: true,
+      profilePic: true,
+      role: true,
+      isVerified: true,
+      isSubscribed: true,
+      planExpiration: true,
+      Subscription:{include:{plan:true}},
+      createdAt: true,
+      updatedAt: true,
+
+    },
+  });
+  
+  if (!user) {
+    throw new NotFoundException('User not found!');
+  }
+
+  return user
+
+ }
+
+ // -------refesh token generate ---------------------
+
+ async refeshToken(token: string) {
+  token = token.trim();
+
+  const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
+
+  try {
+    const decoded = this.jwtService.verify(token, {
+      secret: refreshSecret,
+    });
+
+    console.log("Decoded Refresh Token:", decoded);
+
+   
+ const jwtPayload={
+userId:decoded.id,
+fullName:decoded.fullName,
+email :decoded.email,
+role:decoded.role,
+isVerified:decoded.isVerified
+ }
+
+ const accessToken = this.jwtService.sign(jwtPayload,{
+  secret:this.configService.get<string>("JWT_ACCESS_SECRET")
+  ,
+  expiresIn:this.configService.get("JWT_ACCESS_EXPIRES_IN")
+ })
+    return {
+      accessToken
+    }
+  } catch (err) {
+    throw new UnauthorizedException("Invalid or expired refresh token");
+  }
+}
+ 
 
 
 }

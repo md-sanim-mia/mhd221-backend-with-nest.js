@@ -5,6 +5,7 @@ import { UpdateAuthDto } from './dto/update-auth.dto';
 import { LoginPayloadDto } from './dto/login-auth.dto';
 import { ChengePasswordDto } from './dto/chenge-password-auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { ForgetPasswordDto } from './dto/forget-password-auth.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -104,12 +105,10 @@ async login (@Body() payload : LoginPayloadDto){
   }
 
 
-
-
   @Post("verify-reset-password-otp")
   
 @HttpCode(HttpStatus.OK)
-  async erifyResetPasswordOTP(@Body() payload:{email:string,otp:string}){
+  async verifyResetPasswordOTP(@Body() payload:{email:string,otp:string}){
 
     const result=await this.authService.verifyResetPasswordOTP(payload)
 
@@ -119,6 +118,53 @@ async login (@Body() payload : LoginPayloadDto){
     }
        
   }
+
+
+@Post("reset-password")
+@HttpCode(HttpStatus.OK)
+  async resetPassword (@Body() payload:ForgetPasswordDto){
+
+  const result=await this.authService.resetPassword(payload)
+
+    return {
+      "success":true,
+      "message":result.message
+    }
+
+  }
+ @UseGuards(JwtAuthGuard)
+  @Get("me")
+   @HttpCode(HttpStatus.OK)
+  async getMe(@Req() req:Request&{user:any}){
+
+    const result=await this.authService.getMe(req.user.email)
+
+       return {
+      "success":true,
+      "message":"User fetched successfully!",
+      "data":result
+    }
+
+
+  }
+
+
+
+@Post("refresh-token")
+@HttpCode(HttpStatus.OK)
+  async refeshToken(@Body() payload:{token:string}){
+
+const result=await this.authService.refeshToken(payload.token)
+
+
+return {
+  "success":true,
+  "message":"access token re generate success fully",
+  "data":result
+}
+
+  }
+
 
 
 }
