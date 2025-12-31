@@ -8,12 +8,14 @@ import { UtilsModule } from './utils/utils.module';
 import { UsersModule } from './users/users.module';
 import { ProductModule } from './product/product.module';
 import { PlanModule } from './plan/plan.module';
+import { SubscriptionModule } from './subscription/subscription.module';
+import { StripeModule } from './common/stripe/stripe.module';
 
 @Module({
    imports: [ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-    }), AuthModule, UtilsModule, UsersModule, ProductModule, PlanModule],
+    }), AuthModule, UtilsModule, UsersModule, ProductModule, PlanModule, SubscriptionModule, StripeModule],
   controllers: [AppController],
   providers: [AppService, UtilsService],
 })

@@ -290,11 +290,11 @@ async update(planId: string, payload: UpdatePlanDto) {
       });
     });
 
-    console.log("=== Update Plan Success ===");
+ 
     return updatedPlan;
 
   } catch (error) {
-    console.error("=== Update Plan Error ===");
+   
     console.error(error);
 
     if (stripePriceCreated && newPriceId) {
@@ -315,8 +315,6 @@ async update(planId: string, payload: UpdatePlanDto) {
    if (!id) {
     throw new BadRequestException('Plan id is required');
   }
-
-
     const isExistPaln=await this.prisma.plan.findFirst({where:{id}})
 
   console.log(isExistPaln)
