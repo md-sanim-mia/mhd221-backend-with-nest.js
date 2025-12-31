@@ -7,15 +7,15 @@ import { RolesGuard } from 'src/guards/auth/roles/roles.guard';
 import { Roles } from 'src/guards/auth/roles/roles.decorator';
 import { UserRole } from 'generated/prisma/enums';
 
-@Controller('plan')
+@Controller('plans')
 export class PlanController {
   constructor(private readonly planService: PlanService) {}
 
   @UseGuards(JwtAuthGuard,RolesGuard)
 
-  @Roles(UserRole.ADMIN,UserRole.SUPER_ADMIN)
+  @Roles(UserRole.ADMIN,UserRole.SUPER_ADMIN,UserRole.USER)
 
-  @Post()
+  @Post("create-plan")
   @HttpCode(HttpStatus.CREATED)
  async create(@Body() createPlanDto: CreatePlanDto) {
  const result= await this.planService.create(createPlanDto);
@@ -28,22 +28,53 @@ export class PlanController {
   }
 
   @Get()
-  findAll() {
-    return this.planService.findAll();
+  @HttpCode(HttpStatus.OK)
+ async findAll() {
+    const result=await this.planService.findAll();
+
+    return{
+      "success":true,
+      "message":"success fully get all palan!",
+      "data":result
+    }
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.planService.findOne(+id);
+  @HttpCode(HttpStatus.OK)
+   async findOne(@Param('id') id: string) {
+  const result=await this.planService.findOne(id);
+
+  return {
+       "success":true,
+      "message":"success fully get single palan!",
+      "data":result
+}
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePlanDto: UpdatePlanDto) {
-    return this.planService.update(+id, updatePlanDto);
+  @HttpCode(HttpStatus.OK)
+  async update(@Param('id') id: string, @Body() updatePlanDto: UpdatePlanDto) {
+  const result=await this.planService.update(id, updatePlanDto);
+
+  return{
+      "success":true,
+      "message":"success fully update single palan!",
+      "data":result
   }
+  } 
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.planService.remove(+id);
+ async remove(@Param('id') id: string) {
+
+  console.log(id)
+    const result = await this.planService.remove(id);
+
+return{
+      "success":true,
+      "message":"success fully delete single palan!",
+    
+  }
+    
   }
 }

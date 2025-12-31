@@ -31,12 +31,7 @@ export class CreatePlanDto {
   @IsOptional()
   freeTrialDays?: number;
 
-  @IsString()
-  productId: string;
-
-  @IsString()
-  priceId: string;
-
+  @IsOptional()
   @IsBoolean()
   active: boolean;
 
@@ -44,11 +39,8 @@ export class CreatePlanDto {
   @IsOptional()
   description?: string;
 
-  @IsInt()
-  @IsOptional()
-  maxMembers?: number;
 
-  @IsJSON()
+//   @IsJSON()
   @IsOptional()
   features?: any;
 

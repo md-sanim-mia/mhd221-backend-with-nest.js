@@ -71,6 +71,7 @@ model Plan {
 enum PlanCategory {
   ORGANIZATION
   ARTIST
+   PREMIUM
 }
 
 model Subscription {
