@@ -7,12 +7,13 @@ import { UtilsService } from './utils/utils.service';
 import { UtilsModule } from './utils/utils.module';
 import { UsersModule } from './users/users.module';
 import { ProductModule } from './product/product.module';
+import { PlanModule } from './plan/plan.module';
 
 @Module({
    imports: [ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-    }), AuthModule, UtilsModule, UsersModule, ProductModule],
+    }), AuthModule, UtilsModule, UsersModule, ProductModule, PlanModule],
   controllers: [AppController],
   providers: [AppService, UtilsService],
 })

@@ -275,7 +275,7 @@ role:isUser.role,
 isVerified:isUser.isVerified
  }
 
-
+ 
  const accessToken = await this.jwtService.sign(jwtPayload,{
   secret:process.env.JWT_ACCESS_SECRET,
   expiresIn:"10d"
