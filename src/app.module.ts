@@ -10,12 +10,13 @@ import { ProductModule } from './product/product.module';
 import { PlanModule } from './plan/plan.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { StripeModule } from './common/stripe/stripe.module';
+import { WebhookModule } from './common/webhook/webhook.module';
 
 @Module({
    imports: [ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-    }), AuthModule, UtilsModule, UsersModule, ProductModule, PlanModule, SubscriptionModule, StripeModule],
+    }), AuthModule, UtilsModule, UsersModule, ProductModule, PlanModule, SubscriptionModule, StripeModule, WebhookModule],
   controllers: [AppController],
   providers: [AppService, UtilsService],
 })
